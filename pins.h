@@ -2,79 +2,39 @@
 #ifndef PINS_H
 #define	PINS_H
 
-#define SCL_TRIS  TRISC0
-#define SDA_TRIS  TRISC1
+#define SCL_TRIS TRISB4
+#define SDA_TRIS TRISB1
 
-#define dirTRIS   TRISA2
-#define ms1TRIS   TRISC2
-#define ms2TRIS   TRISB4
-#define ms3TRIS   TRISB5
+#define z0TRIS TRISA0
+#define z1TRIS TRISA1
+#define z2TRIS TRISA2
+#define z3TRIS TRISA3
 
-#define dirLAT    LATA2
-#define ms1LAT    LATC2
-#define ms2LAT    LATB4
-#define ms3LAT    LATB5
+#define l0TRIS TRISA4
+#define l1TRIS TRISA6
+#define l2TRIS TRISA7
+#define l3TRIS TRISB7
 
-#define resetTRIS TRISB6
-#define resetLAT  LATB6
+#define p0TRIS TRISB0
+#define p1TRIS TRISB2
+#define p2TRIS TRISB3
+#define p3TRIS TRISB5
 
-#ifdef B1
+#define z0LAT LATA0
+#define z1LAT LATA1
+#define z2LAT LATA2
+#define z3LAT LATA3
 
-#define stepTRIS  TRISC5
-#define stepLAT   LATC5
-#define stepPORT  PORTC
-#define stepBIT   0x20
+#define l0LAT LATA4
+#define l1LAT LATA6
+#define l2LAT LATA7
+#define l3LAT LATB7
 
-#define faultTRIS TRISA5
-#define faultPORT PORTA
-#define faultBIT  0x80
+#define p0LAT LATB0
+#define p1LAT LATB2
+#define p2LAT LATB3
+#define p3LAT LATB5
 
-#define limitTRIS TRISA4
-#define limitPORT PORTA
-#define limitBIT  0x10
-
-#else
-
-
-#define stepRTRIS  TRISC5
-#define stepETRIS  TRISC4
-#define stepXTRIS  TRISC3
-
-#define stepRLAT   LATC5
-#define stepELAT   LATC4
-#define stepXLAT   LATC3
-
-#define stepRPORT  PORTC
-#define stepRBIT   0x20
-#define stepEPORT  PORTC
-#define stepEBIT   0x10
-#define stepXPORT  PORTC
-#define stepXBIT   0x08
-
-#define faultRTRIS  TRISC6
-#define faultETRIS  TRISC7
-#define faultXTRIS  TRISB7
-
-#define faultRLAT   LATC6
-#define faultELAT   LATC7
-#define faultXLAT   LATB7
-
-#define faultRPORT  PORTC
-#define faultRBIT   0x40
-#define faultEPORT  PORTC
-#define faultEBIT   0x80
-#define faultXPORT  PORTB
-#define faultXBIT   0x80
-
-#define limitRTRIS  TRISA5
-#define limitXTRIS  TRISA4
-
-#define limitRPORT  PORTA
-#define limitRBIT   0x20
-#define limitXPORT  PORTA
-#define limitXBIT   0x10
-
-#endif	/* M1 */
 
 #endif	/* PINS_H */
 

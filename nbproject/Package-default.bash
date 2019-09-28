@@ -10,9 +10,9 @@ CND_CONF=default
 CND_DISTDIR=dist
 TMPDIR=build/${CND_CONF}/${IMAGE_TYPE}/tmp-packaging
 TMPDIRNAME=tmp-packaging
-OUTPUT_PATH=dist/${CND_CONF}/${IMAGE_TYPE}/mcu-bi-bkup.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
-OUTPUT_BASENAME=mcu-bi-bkup.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
-PACKAGE_TOP_DIR=mcu-bi-bkup/
+OUTPUT_PATH=dist/${CND_CONF}/${IMAGE_TYPE}/p4-mcu-8.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
+OUTPUT_BASENAME=p4-mcu-8.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
+PACKAGE_TOP_DIR=p4-mcu-8/
 
 # Functions
 function checkReturnCode
@@ -57,15 +57,15 @@ mkdir -p ${TMPDIR}
 
 # Copy files and create directories and links
 cd "${TOP}"
-makeDirectory ${TMPDIR}/mcu-bi-bkup/bin
+makeDirectory ${TMPDIR}/p4-mcu-8/bin
 copyFileToTmpDir "${OUTPUT_PATH}" "${TMPDIR}/${PACKAGE_TOP_DIR}bin/${OUTPUT_BASENAME}" 0755
 
 
 # Generate tar file
 cd "${TOP}"
-rm -f ${CND_DISTDIR}/${CND_CONF}/package/mcu-bi-bkup.tar
+rm -f ${CND_DISTDIR}/${CND_CONF}/package/p4-mcu-8.tar
 cd ${TMPDIR}
-tar -vcf ../../../../${CND_DISTDIR}/${CND_CONF}/package/mcu-bi-bkup.tar *
+tar -vcf ../../../../${CND_DISTDIR}/${CND_CONF}/package/p4-mcu-8.tar *
 checkReturnCode
 
 # Cleanup

@@ -24,7 +24,7 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 
 
 # Project Name
-PROJECTNAME=mcu-bi-bkup
+PROJECTNAME=p4-mcu-8
 
 # Active Configuration
 DEFAULTCONF=default
