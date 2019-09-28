@@ -29,7 +29,6 @@
 void main(void) {
   ANSELA = 0; // no analog inputs
   ANSELB = 0; // these &^%$&^ regs cause a lot of trouble
-  ANSELC = 0; // they should not default to on and override everything else
   
   i2cInit();
   clkInit();

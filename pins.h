@@ -2,8 +2,10 @@
 #ifndef PINS_H
 #define	PINS_H
 
-#define SCL_TRIS TRISB4
-#define SDA_TRIS TRISB1
+#define sclTRIS TRISB4
+#define sdaTRIS TRISB1
+#define sclLAT  LATB4
+#define sdaLAT  LATB1
 
 #define z0TRIS TRISA0
 #define z1TRIS TRISA1
@@ -35,6 +37,35 @@
 #define p2LAT LATB3
 #define p3LAT LATB5
 
+#define z0PORT PORTA
+#define z1PORT PORTA
+#define z2PORT PORTA
+#define z3PORT PORTA
+
+#define l0PORT PORTA
+#define l1PORT PORTA
+#define l2PORT PORTA
+#define l3PORT PORTB
+
+#define p0PORT PORTB
+#define p1PORT PORTB
+#define p2PORT PORTB
+#define p3PORT PORTB
+
+#define z0BIT 0x01
+#define z1BIT 0x02
+#define z2BIT 0x04
+#define z3BIT 0x08
+
+#define l0BIT 0x10
+#define l1BIT 0x40
+#define l2BIT 0x80
+#define l3BIT 0x80
+
+#define p0BIT 0x01
+#define p1BIT 0x04
+#define p2BIT 0x08
+#define p3BIT 0x20
 
 #endif	/* PINS_H */
 

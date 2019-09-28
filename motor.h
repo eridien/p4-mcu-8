@@ -5,49 +5,22 @@
 #include <xc.h>
 #include "types.h"
 
-// steps are in 1/8 step (bipolar) or one phase (unipolar)
-//    for bipolar:
-//       steps/rev:        1600
-//       dist/rev:           40 mm
-//       max distance:      800 mm
-//       max step count: 32,000
-//
-//    for unipolar:
+#define NUM_MOTORS 3
+
+// steps are one phase (unipolar)
 //       steps/rev:        2048
 //       dist/rev:           40 mm
 //       max distance:      625 mm
 //       max step count: 32,000
-
-#ifdef B1
-#define NUM_MOTORS 1
-#endif
-#ifdef B3
-#define NUM_MOTORS 3
-#endif
-#ifdef U6
-#define NUM_MOTORS 6
-#endif
+#define STEPS_MM = (2048/40)
 
 // global for use in main chk loop
 extern uint8  motorIdx;
 extern struct motorState      *ms;
 extern struct motorSettings   *sv;
-extern volatile unsigned char *mp; // motor port (like &PORTA)
-extern uint8                   mm; // motor mask (0xf0 or 0x0f or step bit)
 
-extern volatile unsigned char *motorPort[NUM_MOTORS];  // mcu port byte
-extern uint8                   motorMask[NUM_MOTORS];  // bit mask
-
-// faultPort == 0 means no fault pin
-extern volatile unsigned char *faultPort[NUM_MOTORS]; // mcu port byte
-extern uint8                   faultMask[NUM_MOTORS]; // bit mask
-
-// limitPort == 0 means no limit switch
-extern volatile unsigned char *limitPort[NUM_MOTORS];   // mcu port byte
-extern uint8                   limitMask[NUM_MOTORS];   // bit mask
-
-#define setStepLo()        *motorPort[motorIdx] &= ~motorMask[motorIdx]
-#define setStepHi(_motIdx) *motorPort[_motIdx]  |=  motorMask[_motIdx]
+extern volatile unsigned char *motorPort[NUM_MOTORS][4];  // mcu port byte
+extern uint8                   motorMask[NUM_MOTORS][4];  // bit mask
 
 struct motorState {
   uint8  stateByte;
@@ -55,10 +28,9 @@ struct motorState {
   int16  targetPos;
   bool   dir;
   bool   targetDir;
-  uint8  ustep;
+  uint8  phase;
   uint16 speed;
   uint16 targetSpeed;
-  int8   stepDist;
   bool   stepPending;
   bool   stepped;
   uint16 nextStepTicks;
@@ -75,13 +47,10 @@ struct motorSettings {
   uint16 minSpeed;
   uint16 noAccelSpeedLimit;
   uint16 accellerationRate;
-  uint16 homingSpeed;
-  uint16 homingBackUpSpeed;
-  uint16 homeOfs;
   uint16 homePos;
 };
 
-#define NUM_SETTING_WORDS 8
+#define NUM_SETTING_WORDS 5
 
 union settingsUnion{
   uint16 reg[NUM_SETTING_WORDS];
@@ -92,8 +61,6 @@ void motorInit(void);
 void chkMotor(void);
 bool withinDecellDist(void);
 void softStopCommand(bool reset);
-void haveFault();
-void limitClosed();
 void setStep(void);
 void stopStepping(void);
 void resetMotor(void);

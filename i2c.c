@@ -6,9 +6,6 @@
 #include "state.h"
 #include "motor.h"
 
-#define CLK LATC0
-#define SDA LATC1
-
 volatile uint8 subTime;
 
 volatile uint8 i2cRecvBytes[NUM_MOTORS][NUM_RECV_BYTES + 1];
@@ -19,13 +16,8 @@ volatile bool  haveRecvData;
 volatile bool  inPacket;
 
 void i2cInit() {    
-    SCL_TRIS = 1;
-    SDA_TRIS = 1;
-    
-    SSP1CLKPPS = 0x10;           // RC0
-    SSP1DATPPS = 0x11;           // RC1
-    RC0PPS     = 0x15;           // SCL1
-    RC1PPS     = 0x16;           // SDA1
+    sclTRIS = 1;
+    sdaTRIS = 1;
 
     SSP1CON1bits.SSPM = 0x0e;          // slave mode, 7-bit, S & P ints enabled 
     SSP1MSK           = I2C_ADDR_MASK; // address mask, check all top 5 bits
@@ -62,9 +54,7 @@ void setI2cCkSumInt(uint8 motIdx) {
 }
 
 void checkI2c() {
-  if(haveError() && 
-      ((ms->stateByte & 0x0c) == (BUSY_MOVING << 2) || 
-      ((ms->stateByte & 0x0c) == (BUSY_HOMING << 2)))) {
+  if(haveError() && (ms->stateByte & MOVING_BIT)) {
     // have error and motor moving, stop and reset
     softStopCommand(true);
   }
@@ -96,7 +86,7 @@ void i2cInterrupt(void) {
       setErrorInt(motIdxInPacket, I2C_OVERFLOW_ERROR);
     }
     else {
-      if(!SSP1STATbits.RW) {
+      if(!SSP1STATbits.R_nW) {
         // total length of recv is stored in first byte
         i2cRecvBytes[motIdxInPacket][0] = i2cRecvBytesPtr-1;
         mState[motIdxInPacket].i2cCmdBusy = true;
@@ -108,16 +98,16 @@ void i2cInterrupt(void) {
     }
   }
   else {
-    if(!SSP1STATbits.DA) { 
+    if(!SSP1STATbits.D_nA) { 
       // received addr byte, extract motor number
       motIdxInPacket = (SSP1BUF & 0x0c) >> 1;
-      if(SSP1STATbits.RW) {
+      if(SSP1STATbits.R_nW) {
         // send packet (i2c read from slave), load buffer for first byte
         SSP1BUF = i2cSendBytes[motIdxInPacket][i2cSendBytesPtr++]; // allways byte 0
       }
     }
     else {
-      if(!SSP1STATbits.RW) {
+      if(!SSP1STATbits.R_nW) {
         if(mState[motIdxInPacket].i2cCmdBusy) {
           // oops, last recv not handled yet by main loop
           setErrorInt(motIdxInPacket, CMD_NOT_DONE_ERROR);

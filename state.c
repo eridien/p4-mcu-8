@@ -14,14 +14,6 @@ void setCurState(uint8 newState) {
   GIE = 1;
 }
 
-uint8 getBusyState(void) {
-  return (ms->stateByte & 0x0c);
-}
-
-void setBusyState(uint8 busyState) {
-  setCurState((ms->stateByte & 0xf3) | busyState);
-}
-
 void setStateBit(uint8 mask, uint8 set){
   setCurState((ms->stateByte & ~mask) | (set ? mask : 0));
 }
@@ -34,6 +26,7 @@ void setError(uint8 err) {
 
 // use from interrupt
 void setErrorInt(uint8 motIdx, uint8 err) {
-  mState[motIdx].stateByte = ((mState[motIdx].stateByte & 0x8f) | err);
+  mState[motIdx].stateByte = 
+          ((mState[motIdx].stateByte & 0x8f) | err) | ERROR_BIT;
   setI2cCkSumInt(motIdx);
 }

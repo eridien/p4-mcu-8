@@ -9,8 +9,6 @@
 void chkMoving() {
   // in the process of stepping
 
-  if(limitClosed()) setError(MOTOR_LIMIT_ERROR);
-  
   if(ms->stepPending || ms->stepped || haveError()) return;
   
   if((ms->curPos == ms->targetPos) && underAccellLimit()) {
@@ -40,10 +38,6 @@ void chkMoving() {
 }
 
 void moveCommand(int16 pos) {
-  if(ms->curPos == POS_UNKNOWN_CODE) {
-    setError(NOT_HOMED_ERROR);
-    return;
-  }
   ms->targetPos = pos;
   if(!underAccellLimit()) {
     // already moving fast, keep going same way
@@ -52,12 +46,13 @@ void moveCommand(int16 pos) {
   else if(ms->curPos != ms->targetPos) {
     ms->dir = (ms->targetPos >= ms->curPos);
     // start moving
-    setBusyState(BUSY_MOVING);
+    ms->stateByte |= MOVING_BIT;
+    ms->stateByte &= ~STOPPING_BIT;
     ms->targetSpeed = sv->maxSpeed;
     chkMoving();
   }
   else {
-    // already at target
+    // at target
     stopStepping();
   }
 }
