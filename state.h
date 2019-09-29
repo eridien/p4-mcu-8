@@ -14,11 +14,9 @@
 //      e: error bit
 //      b: busy state
 //      o: motor on (not in reset)
-//      z: at home
+//      s: stopping
 //   aaaa aaaa  current position, top 8 bits of signed 16-bit word
 //   aaaa aaaa  followed by bottom 8 bits
-//   hhhh hhhh  home test position val, top 8 bits of signed 16-bit word
-//   shhh hhhh  home test position val, bottom 8 bits
 //   cccc cccc  8-bit cksum, sum of first 5 bytes
 
 // Error codes 

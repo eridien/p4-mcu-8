@@ -52,6 +52,11 @@
 //   aaaa aaaa  followed by bottom 8 bits
 //   cccc cccc  8-bit cksum, sum of first 5 bytes
 
+#define WCOL  SSP1CON1bits.WCOL
+#define SSPOV SSP1CON1bits.SSPOV
+#define CKP   SSP1CON1bits.CKP
+#define SSPEN SSP1CON1bits.SSPEN
+
 #define NUM_RECV_BYTES NUM_SETTING_WORDS*2+4
 #define NUM_SEND_BYTES 4  //  state, posH, posL, cksum
 

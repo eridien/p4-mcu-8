@@ -25,12 +25,9 @@ uint8 motorMask[NUM_MOTORS][4] = {
   {p0BIT, p1BIT, p2BIT, p3BIT},
 };
 
-void clrMotorPin(uint8 mot, uint8 pin) {
-  *motorPort[mot][pin] &= ~motorMask[mot][pin];
-}
-
-void setMotorPin(uint8 mot, uint8 pin) {
-  *motorPort[mot][pin] |= ~motorMask[mot][pin];
+void setMotorPin(uint8 mot, uint8 pin, bool on) {
+  if(on) *motorPort[mot][pin] |=  motorMask[mot][pin];
+  else   *motorPort[mot][pin] &= ~motorMask[mot][pin];
 }
 
 // default startup values
@@ -40,7 +37,7 @@ uint16 settingsInit[NUM_SETTING_WORDS] = {
       2,  // min ms->speed: 2 steps/sec (else sw blows up)
    1600,  // no-accelleration ms->speed limit:  20 mm/sec
      80,  // accelleration rate: 1 mm/sec/sec
-      0,  // homePos
+      0,  // home value used by command
 };
 
 // estimated decell distance by ms->speed
@@ -75,7 +72,7 @@ bool withinDecellDist() {
 void motorInit() {
   for(uint8 motIdx=0; motIdx < NUM_MOTORS; motIdx++) {
     struct motorState *p = &mState[motIdx];
-    p->curPos          = POS_UNKNOWN_CODE;  // 1/80 mm
+    p->curPos          = 0;  // 1/80 mm
     p->dir             = 1;  // 1 => forward
     p->phase           = 0;
     p->targetPos       = 1;  // 1/80 mm
@@ -121,10 +118,10 @@ void stopStepping() {
 
 void resetMotor() {
   stopStepping();
-  ms->curPos = POS_UNKNOWN_CODE;
+  ms->curPos = 0;
   setStateBit(MOTOR_ON_BIT, 0);
   for(uint8 i=0; i<4; i++)
-    clrMotorPin(motorIdx, i);
+    setMotorPin(motorIdx, i, 0);
 }
 
 bool underAccellLimit() {
@@ -171,33 +168,33 @@ void chkMotor() {
 }
 
 void softStopCommand(bool resetAfter) {
-  ms->stateByte != STOPPING_BIT;
+  ms->stateByte |= STOPPING_BIT;
   ms->resetAfterSoftStop = resetAfter;
 }
 
 void setMotorPins(uint8 phase) {
   switch (phase) {
     case 0:
-      clrMotorPin(motorIdx, 1); clrMotorPin(motorIdx, 1);
-      clrMotorPin(motorIdx, 0); clrMotorPin(motorIdx, 0);
+      setMotorPin(motorIdx, 0, 1); setMotorPin(motorIdx, 1, 1);
+      setMotorPin(motorIdx, 2, 0); setMotorPin(motorIdx, 3, 0);
       break;
     case 1:
-      clrMotorPin(motorIdx, 0); clrMotorPin(motorIdx, 1);
-      clrMotorPin(motorIdx, 1); clrMotorPin(motorIdx, 0);
+      setMotorPin(motorIdx, 0, 0); setMotorPin(motorIdx, 1, 1);
+      setMotorPin(motorIdx, 2, 1); setMotorPin(motorIdx, 3, 0);
       break;
     case 2:
-      clrMotorPin(motorIdx, 0); clrMotorPin(motorIdx, 0);
-      clrMotorPin(motorIdx, 1); clrMotorPin(motorIdx, 1);
+      setMotorPin(motorIdx, 0, 0); setMotorPin(motorIdx, 1, 0);
+      setMotorPin(motorIdx, 2, 1); setMotorPin(motorIdx, 3, 1);
       break;
     case 3:
-      clrMotorPin(motorIdx, 1); clrMotorPin(motorIdx, 0);
-      clrMotorPin(motorIdx, 0); clrMotorPin(motorIdx, 1);
+      setMotorPin(motorIdx, 0, 1); setMotorPin(motorIdx, 1, 0);
+      setMotorPin(motorIdx, 2, 0); setMotorPin(motorIdx, 3, 1);
       break;    
   }
 }
 
 void motorOnCmd() {
-  ms->curPos = POS_UNKNOWN_CODE;
+  ms->curPos = 0;
   ms->stateByte |= MOTOR_ON_BIT;
   setMotorPins(ms->phase);
 }

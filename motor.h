@@ -12,7 +12,8 @@
 //       dist/rev:           40 mm
 //       max distance:      625 mm
 //       max step count: 32,000
-#define STEPS_MM = (2048/40)
+#define STEPS_MM (2048/40)
+
 
 // global for use in main chk loop
 extern uint8  motorIdx;
@@ -38,8 +39,6 @@ struct motorState {
   bool   resetAfterSoftStop;
   bool   i2cCmdBusy;
 } mState[NUM_MOTORS];
-
-#define POS_UNKNOWN_CODE -9999 // not homed since lastmotor off
 
 // constants loadable from command
 struct motorSettings {

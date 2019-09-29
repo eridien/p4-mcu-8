@@ -4,7 +4,6 @@
 
 // todo
 //   set homing dir for rotation motor
-//   status returns home pos after homing test
 //   new busy and err bits
 //   stop all motors on error
 //   keep pos accurate in recvbytes

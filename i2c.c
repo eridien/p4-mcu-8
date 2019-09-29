@@ -29,7 +29,7 @@ void i2cInit() {
     SSP1CON3bits.DHEN = 0;             // no clock stretch for data ack
     SSP1CON3bits.BOEN = 1;             // enable buffer overwrite check
            
-    SSP1CON1bits.SSPEN = 1;            // Enable the serial port
+    SSPEN = 1;                         // Enable the serial port
     SSP1IF = 0;                        // nothing received yet
     SSP1IE = 1;                        // Enable ints
 }
