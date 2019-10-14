@@ -46,8 +46,8 @@ void moveCommand(int16 pos) {
   else if(ms->curPos != ms->targetPos) {
     ms->dir = (ms->targetPos >= ms->curPos);
     // start moving
-    ms->stateByte |= MOVING_BIT;
-    ms->stateByte &= ~STOPPING_BIT;
+    ms->stateByte |= BUSY_BIT;
+    ms->stopping = false;
     ms->targetSpeed = sv->maxSpeed;
     chkMoving();
   }

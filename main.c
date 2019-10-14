@@ -52,8 +52,8 @@ void main(void) {
 // global interrupt routine
 void __interrupt() globalInt() {
   // motor (clock) interrupts every 20 usecs (50 KHz))
-  if(TMR0IF) {
-    TMR0IF = 0;
+  if(TMR2IF) {
+    TMR2IF = 0;
     clockInterrupt();
   }
   // i2c interrupts usually 25 usecs

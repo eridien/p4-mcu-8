@@ -26,7 +26,6 @@ void setError(uint8 err) {
 
 // use from interrupt
 void setErrorInt(uint8 motIdx, uint8 err) {
-  mState[motIdx].stateByte = 
-          ((mState[motIdx].stateByte & 0x8f) | err) | ERROR_BIT;
+  mState[motIdx].stateByte = err;
   setI2cCkSumInt(motIdx);
 }

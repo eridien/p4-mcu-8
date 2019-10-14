@@ -38,6 +38,7 @@ struct motorState {
   uint16 lastStepTicks;
   bool   resetAfterSoftStop;
   bool   i2cCmdBusy;
+  bool   stopping;
 } mState[NUM_MOTORS];
 
 // constants loadable from command

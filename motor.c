@@ -110,8 +110,7 @@ void setMotorSettings() {
 }
 
 void stopStepping() {
-  setStateBit(MOVING_BIT,   0);
-  setStateBit(STOPPING_BIT, 0);
+  setStateBit(BUSY_BIT, 0);
   ms->stepPending = false;
   ms->stepped     = false;
 }
@@ -159,16 +158,16 @@ void chkMotor() {
     ms->curPos++;
     ms->stepped = false;
   }
-  if(ms->stateByte & STOPPING_BIT) {
+  if(ms->stopping) {
     if(!haveError()) chkStopping();
     
-  } else if(ms->stateByte & MOVING_BIT) {
+  } else if(ms->stateByte & BUSY_BIT) {
     if(!haveError()) chkMoving();
   }
 }
 
 void softStopCommand(bool resetAfter) {
-  ms->stateByte |= STOPPING_BIT;
+  ms->stopping = true;
   ms->resetAfterSoftStop = resetAfter;
 }
 

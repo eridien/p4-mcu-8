@@ -27,10 +27,11 @@
 #define MOTOR_LIMIT_ERROR   0x60
 
 // state bits
-#define ERROR_BIT           0x08
-#define MOVING_BIT          0x04
+#define ERR_CODE            0x70
+#define AUX_RES_BIT         0x08 // do-d1 indicate what is in pos word
+#define BUSY_BIT            0x04
 #define MOTOR_ON_BIT        0x02
-#define STOPPING_BIT        0x01
+#define HOMED_BIT           0x01
 
 void  setCurState(uint8 newState);
 void  setStateBit(uint8 mask, uint8 set);

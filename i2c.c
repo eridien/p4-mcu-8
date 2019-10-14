@@ -54,7 +54,7 @@ void setI2cCkSumInt(uint8 motIdx) {
 }
 
 void checkI2c() {
-  if(haveError() && (ms->stateByte & MOVING_BIT)) {
+  if(haveError() && (ms->stateByte & BUSY_BIT)) {
     // have error and motor moving, stop and reset
     softStopCommand(true);
   }
@@ -100,7 +100,7 @@ void i2cInterrupt(void) {
   else {
     if(!SSP1STATbits.D_nA) { 
       // received addr byte, extract motor number
-      motIdxInPacket = (SSP1BUF & 0x0c) >> 1;
+      motIdxInPacket = (SSP1BUF & 0x06) >> 1;
       if(SSP1STATbits.R_nW) {
         // send packet (i2c read from slave), load buffer for first byte
         SSP1BUF = i2cSendBytes[motIdxInPacket][i2cSendBytesPtr++]; // allways byte 0
