@@ -11,7 +11,7 @@ void chkMoving() {
 
   if(ms->stepPending || ms->stepped || haveError()) return;
   
-  if((ms->curPos == ms->targetPos) && underAccellLimit()) {
+  if((ms->curPos == ms->targetPos) && underJerkSpeed()) {
     stopStepping();
     return;
   }
@@ -19,18 +19,18 @@ void chkMoving() {
   ms->targetDir = (ms->targetPos >= ms->curPos);
 
   // check ms->speed/acceleration
-  if((!underAccellLimit() && withinDecellDist()) || (ms->dir != ms->targetDir))
+  if((!underJerkSpeed() && withinDecellDist()) || (ms->dir != ms->targetDir))
     // decellerate
-    ms->speed -= sv->accellerationRate;
+    ms->speed -= ms->accelleration;
   else if(ms->targetSpeed > ms->speed) {
     // accelerate
-    ms->speed += sv->accellerationRate;
+    ms->speed += ms->accelleration;
   }
-  if(ms->speed > sv->maxSpeed) ms->speed = sv->maxSpeed;
-  if(ms->speed < sv->minSpeed) ms->speed = sv->minSpeed;
+  if(ms->speed > ms->targetSpeed) ms->speed = ms->targetSpeed;
+  if(ms->speed < sv->jerk)        ms->speed = sv->jerk;
 
   // check direction
-  if(ms->dir != ms->targetDir && underAccellLimit()) {
+  if(ms->dir != ms->targetDir && underJerkSpeed()) {
     // slow enough, change ms->dir
     ms->dir = ms->targetDir;
   }
@@ -39,16 +39,16 @@ void chkMoving() {
 
 void moveCommand(int16 pos) {
   ms->targetPos = pos;
-  if(!underAccellLimit()) {
+  if(!underJerkSpeed()) {
     // already moving fast, keep going same way
     chkMoving();
   }
   else if(ms->curPos != ms->targetPos) {
     ms->dir = (ms->targetPos >= ms->curPos);
     // start moving
-    ms->stateByte |= BUSY_BIT;
+    setStateBit(BUSY_BIT, 1);
     ms->stopping = false;
-    ms->targetSpeed = sv->maxSpeed;
+    ms->targetSpeed = sv->speed;
     chkMoving();
   }
   else {

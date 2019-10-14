@@ -32,6 +32,7 @@ struct motorState {
   uint8  phase;
   uint16 speed;
   uint16 targetSpeed;
+  uint16 accelleration;
   bool   stepPending;
   bool   stepped;
   uint16 nextStepTicks;
@@ -39,18 +40,29 @@ struct motorState {
   bool   resetAfterSoftStop;
   bool   i2cCmdBusy;
   bool   stopping;
+  uint8  nextStateSpecialVal;
+  bool   haveSettings;
 } mState[NUM_MOTORS];
 
 // constants loadable from command
 struct motorSettings {
-  uint16 maxSpeed;
-  uint16 minSpeed;
-  uint16 noAccelSpeedLimit;
-  uint16 accellerationRate;
-  uint16 homePos;
+  uint16 accelIdx;
+  uint16 speed;
+  uint16 jerk;
+   int16 homePos;        // value to set cur pos after homing
+//   int16 minPos;
+//   int16 maxPos;
+//  uint16 homingDir;
+//  uint16 homingSpeed;
+//  uint16 homingBackUpSpeed;
+//   int16 homeOfs;
+//  uint16 limitSwCtl;     // limit sw assignment
+//  uint16 backlashWid;    // backlash dead width in steps
+//  uint16 maxUstep;       // maximum ustep (0 for 5-wire unipolar stepper, else 3)
+//  uint16 mcuClock;       // period of clock in usecs  (applies to all motors in mcu)
 };
 
-#define NUM_SETTING_WORDS 5
+#define NUM_SETTING_WORDS  4
 
 union settingsUnion{
   uint16 reg[NUM_SETTING_WORDS];
@@ -65,7 +77,7 @@ void setStep(void);
 void stopStepping(void);
 void resetMotor(void);
 void motorOnCmd(void);
-void processMotorCmd(void);
+void processCommand(void);
 void clockInterrupt(void);
 uint16 getLastStep(void);
 void setNextStep(uint16 ticks);

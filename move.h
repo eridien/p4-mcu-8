@@ -7,7 +7,7 @@
 
 void chkMoving(void);
 void moveCommand(int16 pos);
-bool underAccellLimit(void);
+bool underJerkSpeed(void);
 
 #endif	/* MOVE_H */
 

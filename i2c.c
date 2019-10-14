@@ -60,7 +60,7 @@ void checkI2c() {
   }
   if(ms->i2cCmdBusy) {
     if(!haveError()) {
-      processMotorCmd();
+      processCommand();
     }
     // don't clear until done with data
     ms->i2cCmdBusy = false;
@@ -83,7 +83,7 @@ void i2cInterrupt(void) {
     // received stop bit, on read tell loop that data is available
     inPacket = false;
     if (WCOL || SSPOV) {
-      setErrorInt(motIdxInPacket, I2C_OVERFLOW_ERROR);
+      setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
     }
     else {
       if(!SSP1STATbits.R_nW) {
@@ -96,6 +96,7 @@ void i2cInterrupt(void) {
         setI2cCkSumInt(motIdxInPacket);
       }
     }
+    
   }
   else {
     if(!SSP1STATbits.D_nA) { 
@@ -110,7 +111,7 @@ void i2cInterrupt(void) {
       if(!SSP1STATbits.R_nW) {
         if(mState[motIdxInPacket].i2cCmdBusy) {
           // oops, last recv not handled yet by main loop
-          setErrorInt(motIdxInPacket, CMD_NOT_DONE_ERROR);
+          setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
         } else {
           // received byte (i2c write to slave)
           if(i2cRecvBytesPtr < NUM_RECV_BYTES + 1) 

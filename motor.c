@@ -33,13 +33,11 @@ void setMotorPin(uint8 mot, uint8 pin, bool on) {
 // default startup values
 // must match settingsStruct
 uint16 settingsInit[NUM_SETTING_WORDS] = {
-   6400,  // max ms->speed: 80 mm/sec
-      2,  // min ms->speed: 2 steps/sec (else sw blows up)
-   1600,  // no-accelleration ms->speed limit:  20 mm/sec
-     80,  // accelleration rate: 1 mm/sec/sec
-      0,  // home value used by command
+      1,  // accelIdx accelleration rate: 1 mm/sec/sec
+   6400,  // max speed: 80 mm/sec
+   1600,  // jerk  20 mm/sec
+      0,  // homePos: home value used by command
 };
-
 // estimated decell distance by ms->speed
 // wild guess for now
 uint16 decellTable[][2] = {
@@ -101,12 +99,14 @@ void motorInit() {
   p3TRIS = 1;
 }
 
-void setMotorSettings() {
+void setMotorSettings(uint8 numWords) {
   for(uint8 i = 0; i < sizeof(mSet[motorIdx]) / 
                        sizeof(mSet[motorIdx].reg[0]); i++) {
+    if(i == numWords) break;
     mSet[motorIdx].reg[i] = (i2cRecvBytes[motorIdx][2*i + 1] << 8) | 
                              i2cRecvBytes[motorIdx][2*i + 2];
   }
+  ms->haveSettings = true;
 }
 
 void stopStepping() {
@@ -123,8 +123,8 @@ void resetMotor() {
     setMotorPin(motorIdx, i, 0);
 }
 
-bool underAccellLimit() {
-  return (ms->speed <= sv->noAccelSpeedLimit);
+bool underJerkSpeed() {
+  return (ms->speed <= sv->jerk);
 }
 
 void setStep() {
@@ -140,9 +140,9 @@ void chkStopping() {
   // in the process of stepping
   if(ms->stepPending || ms->stepped) return;
   // check ms->speed/acceleration
-  if(!underAccellLimit()) {
+  if(!underJerkSpeed()) {
     // decellerate
-    ms->speed -= sv->accellerationRate;
+    ms->speed -= ms->accelleration;
   }
   else {
     stopStepping();
@@ -193,48 +193,120 @@ void setMotorPins(uint8 phase) {
 }
 
 void motorOnCmd() {
-  ms->curPos = 0;
-  ms->stateByte |= MOTOR_ON_BIT;
+  setStateBit(MOTOR_ON_BIT, 1);
   setMotorPins(ms->phase);
 }
 
 uint8 numBytesRecvd;
 
-bool lenErr(uint8 expected) {
-  if(expected != numBytesRecvd) {
-    setError(CMD_DATA_ERROR);
-    return true;
+// called on every command except settings
+bool lenIs(uint8 expected, bool chkSettings) {
+  if(chkSettings && !ms->haveSettings) {
+    setError(NO_SETTINGS);
+    return false;
   }
-  return false;
+  if (expected != numBytesRecvd) {
+    setError(CMD_DATA_ERROR);
+    return false;
+  }
+  return true;
 }
   
-// from i2c
-void processMotorCmd() {
-  volatile uint8 *rb = ((volatile uint8 *) i2cRecvBytes[motorIdx]);
+//  accel is 0..7: none, 4000, 8000, 20000, 40000, 80000, 200000, 400000 steps/sec/sec
+//  for 1/40 mm steps: none, 100, 200, 500, 1000, 2000, 5000, 10000 mm/sec/sec
+const uint16 accelTable[8] = // (steps/sec/sec accel) / 8
+       {0, 500, 1000, 2500, 5000, 10000, 25000, 50000};
+
+void processCommand() {
+  volatile uint8 *rb = ((volatile uint8 *) i2cRecvBytes);
   numBytesRecvd   = rb[0];
   uint8 firstByte = rb[1];
-  
-  if((firstByte & 0x80) == 0) {
-    if(lenErr(2)) return;
-    // simple goto pos command, 15-bits in 1/80 mm/sec
-    moveCommand(((int16) firstByte << 8) | rb[2]);
-  }
-  else if((firstByte & 0xfc) == 0x80) {
-    if(lenErr(3)) return;
-    // set max ms->speed reg encoded as 10 mm/sec, 150 max
-    sv->maxSpeed = (firstByte & 0x0f) * 10;
-    // followed by goto pos caommand
-    moveCommand(((int16) rb[2] << 8) | rb[3]);
-  }
-  else switch(firstByte & 0xf0) {
-    case 0xa0: if(!lenErr(1)) softStopCommand(false); break; // stop,no reset
-    case 0xb0: if(!lenErr(1)) softStopCommand(true);  break; // stop with reset
-    case 0xc0: if(!lenErr(1)) resetMotor();           break; // hard stop (immediate reset)
-    case 0xd0: if(!lenErr(1)) motorOnCmd();           break; // reset off
-    case 0xf0: if(!lenErr(NUM_SETTING_WORDS)) 
-                 setMotorSettings();                  break; // set all regs
-    default: lenErr(255); // invalid cmd sets CMD_DATA_ERROR
-  }
+  if ((firstByte & 0x80) == 0x80) {
+    if (lenIs(2, true)) {
+      // move command
+      ms->targetSpeed = sv->speed;
+      moveCommand(((int16) (firstByte & 0x7f) << 8) | rb[2]);
+    }
+  } else if ((firstByte & 0xc0) == 0x40) {
+    // speed-move command
+    if (lenIs(3, true)) {
+      // changes settings for speed
+      ms->targetSpeed = (uint16) (firstByte & 0x3f) << 8;
+      moveCommand((int16) (((uint16) rb[2] << 8) | rb[3]));
+    }
+  } else if ((firstByte & 0xf8) == 0x08) {
+    // accel-speed-move command
+    if (lenIs(5, true)) {
+      // changes settings for acceleration and speed
+      sv->speed = (((uint16) rb[2] << 8) | rb[3]);
+      ms->accelleration = accelTable[firstByte & 0x07];
+      ms->targetSpeed = sv->speed;
+      moveCommand((int16) (((uint16) rb[4] << 8) | rb[5]));
+    }
+  } else if ((firstByte & 0xe0) == 0x20) {
+    // jog command relative - no bounds checking and doesn't need to be homed
+    if (lenIs(2, true)) {
+      motorOnCmd();
+      uint16 dist = ((( (uint16) firstByte & 0x0f) << 8) | rb[2]);
+      // direction bit is in d4
+      if(firstByte & 0x10) ms->targetPos = ms->curPos + dist;
+      else                 ms->targetPos = ms->curPos - dist;
+      ms->accelleration = 0;
+      ms->targetSpeed   = sv->jerk;
+      moveCommand(true);
+    }
+  } else if (firstByte == 0x02) {
+    // jog command relative - no bounds checking and doesn't need to be homed
+    if (lenIs(3, true)) {
+      motorOnCmd(); 
+      ms->accelleration = 0;
+      ms->targetSpeed  = sv->jerk;
+      moveCommand(ms->curPos + (int16) (((uint16) rb[2] << 8) | rb[3]));
+    }
+  } else if (firstByte == 0x03) {
+    // jog command relative - no bounds checking and doesn't need to be homed
+    if (lenIs(3, true)) {
+      motorOnCmd();
+      ms->accelleration = 0;
+      ms->targetSpeed  = sv->jerk;
+      moveCommand((int16) (ms->curPos - (int16) (((uint16) rb[2] << 8) | rb[3])));
+    }
+  } else if (firstByte == 0x01) {
+    // setPos command
+    if (lenIs(3, false)) {
+      ms->curPos =  (int16) (((uint16) rb[2] << 8) | rb[3]);
+    }
+  } else if (firstByte == 0x1f) {
+    // load settings command
+    uint8 numWords = (numBytesRecvd - 1) / 2;
+    if ((numBytesRecvd & 0x01) == 1 &&
+            numWords > 0 && numWords <= NUM_SETTING_WORDS) {
+      setMotorSettings(numWords);
+    } else {
+      setError(CMD_DATA_ERROR);
+    }
+  } else if((firstByte & 0xfc) == 0x04) {
+   // next status contains special value
+    if (lenIs(1, true)) {
+      ms->nextStateSpecialVal = (firstByte & 0x03) + 1;
+    } else {
+      setError(CMD_DATA_ERROR);
+    }
+  } else if ((firstByte & 0xf0) == 0x10) {
+
+    uint8 bottomNib = firstByte & 0x0f;
+    // one-byte commands
+    if (lenIs(1, (bottomNib != 4 && bottomNib != 7))) {
+      switch (bottomNib) {
+        case 2: softStopCommand(false);      break; // stop,no reset
+        case 3: softStopCommand(true);       break; // stop with reset
+        case 4: resetMotor();                break; // hard stop (immediate reset)
+        case 5: motorOnCmd();                break; // reset off
+        default: setError(CMD_DATA_ERROR);
+      }
+    }
+  } 
+  else setError(CMD_DATA_ERROR);
 }
 
 uint16 getLastStep(void) {

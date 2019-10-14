@@ -44,7 +44,11 @@ void main(void) {
       ms = &mState[motorIdx];
       sv = &(mSet[motorIdx].val);
       checkI2c();
-      chkMotor();
+    if(ms->i2cCmdBusy) {
+      processCommand();
+      ms->i2cCmdBusy = false;
+    }
+     chkMotor();
     }
   }
 }

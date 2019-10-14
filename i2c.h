@@ -13,7 +13,7 @@
 #define NUM_RECV_BYTES NUM_SETTING_WORDS*2+4
 #define NUM_SEND_BYTES 4  //  state, posH, posL, cksum
 
-#define I2C_ADDR_MASK 0xf8  // motor idx in d3-d1 (d2-d0 in real addr)
+#define I2C_ADDR_MASK 0xf8  // motor idx in d2-d1 (d1-d0 in real addr)
 #define I2C_ADDR      0x20  // real addr: 0x10 + motor #
 
 extern volatile uint8 i2cRecvBytes[NUM_MOTORS][NUM_RECV_BYTES + 1];
