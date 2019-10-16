@@ -27,6 +27,8 @@
 #include "clock.h"
 
 void main(void) {
+  OSCCONbits.IRCF = 15; // set to full speed
+  
   ANSELA = 0; // no analog inputs
   ANSELB = 0; // these &^%$&^ regs cause a lot of trouble
   
@@ -44,11 +46,7 @@ void main(void) {
       ms = &mState[motorIdx];
       sv = &(mSet[motorIdx].val);
       checkI2c();
-    if(ms->i2cCmdBusy) {
-      processCommand();
-      ms->i2cCmdBusy = false;
-    }
-     chkMotor();
+      chkMotor();
     }
   }
 }

@@ -26,6 +26,9 @@ uint8 motorMask[NUM_MOTORS][4] = {
 };
 
 void setMotorPin(uint8 mot, uint8 pin, bool on) {
+#ifdef  dbg0
+  if(mot == 3 && pin == 0) return;
+#endif
   if(on) *motorPort[mot][pin] |=  motorMask[mot][pin];
   else   *motorPort[mot][pin] &= ~motorMask[mot][pin];
 }
@@ -73,7 +76,7 @@ void motorInit() {
     p->curPos          = 0;  // 1/80 mm
     p->dir             = 1;  // 1 => forward
     p->phase           = 0;
-    p->targetPos       = 1;  // 1/80 mm
+    p->targetPos       = 0;  // 1/80 mm
     p->speed           = 0;  // 1/80 mm/sec
     p->targetSpeed     = 0;  // 1/80 mm/sec
     
@@ -97,6 +100,11 @@ void motorInit() {
   p1TRIS = 1;
   p2TRIS = 1;
   p3TRIS = 1;
+  
+#ifdef dbg0 
+  dbg1
+  l0TRIS = 0;
+#endif
 }
 
 void setMotorSettings(uint8 numWords) {
@@ -155,14 +163,12 @@ void chkStopping() {
 // from main loop
 void chkMotor() {
   if(ms->stepped) {
-    ms->curPos++;
+    if(ms->dir) ms->curPos++; else ms->curPos--;
     ms->stepped = false;
   }
-  if(ms->stopping) {
-    if(!haveError()) chkStopping();
-    
-  } else if(ms->stateByte & BUSY_BIT) {
-    if(!haveError()) chkMoving();
+  if(!haveError()) {
+    if(ms->stopping)                  chkStopping();
+    else if(ms->stateByte & BUSY_BIT) chkMoving();
   }
 }
 
@@ -218,7 +224,7 @@ const uint16 accelTable[8] = // (steps/sec/sec accel) / 8
        {0, 500, 1000, 2500, 5000, 10000, 25000, 50000};
 
 void processCommand() {
-  volatile uint8 *rb = ((volatile uint8 *) i2cRecvBytes);
+  volatile uint8 *rb = ((volatile uint8 *) i2cRecvBytes[motorIdx]);
   numBytesRecvd   = rb[0];
   uint8 firstByte = rb[1];
   if ((firstByte & 0x80) == 0x80) {
@@ -238,9 +244,8 @@ void processCommand() {
     // accel-speed-move command
     if (lenIs(5, true)) {
       // changes settings for acceleration and speed
-      sv->speed = (((uint16) rb[2] << 8) | rb[3]);
+      ms->targetSpeed =(((uint16) rb[2] << 8) | rb[3]);
       ms->accelleration = accelTable[firstByte & 0x07];
-      ms->targetSpeed = sv->speed;
       moveCommand((int16) (((uint16) rb[4] << 8) | rb[5]));
     }
   } else if ((firstByte & 0xe0) == 0x20) {

@@ -12,8 +12,8 @@ volatile uint8 i2cRecvBytes[NUM_MOTORS][NUM_RECV_BYTES + 1];
 volatile uint8 i2cRecvBytesPtr;
 volatile uint8 i2cSendBytes[NUM_MOTORS][NUM_SEND_BYTES];
 volatile uint8 i2cSendBytesPtr;
-volatile bool  haveRecvData;
 volatile bool  inPacket;
+volatile uint8 motIdxInPacket;
 
 void i2cInit() {    
     sclTRIS = 1;
@@ -67,17 +67,17 @@ void checkI2c() {
   }
 }
 
-volatile uint8 motIdxInPacket;
-
 void i2cInterrupt(void) {
   // SSP1STATbits.S is set during entire packet
   if(SSP1STATbits.S && !inPacket) { 
+    dbg0
     // received start bit, prepare for packet
     i2cRecvBytesPtr = 1; // skip over length byte
     i2cSendBytesPtr = 0;
     WCOL = 0;                   // clear WCOL
     volatile int x = SSP1BUF;   // clear SSPOV
     inPacket = true;
+    dbg1
   }
   else if(SSP1STATbits.P) { 
     // received stop bit, on read tell loop that data is available
@@ -92,11 +92,10 @@ void i2cInterrupt(void) {
         mState[motIdxInPacket].i2cCmdBusy = true;
       } else {
         // master just read status,  clear error
-        ms->stateByte = (ms->stateByte & 0x8f);
+        mState[motIdxInPacket].stateByte &= 0x8f;
         setI2cCkSumInt(motIdxInPacket);
       }
     }
-    
   }
   else {
     if(!SSP1STATbits.D_nA) { 
@@ -125,5 +124,5 @@ void i2cInterrupt(void) {
     }
   }
   CKP = 1; // end stretch
-  volatile int z = SSP1BUF;  // clear BF  
+  volatile int z = SSP1BUF;  // clear BF 
 }

@@ -67,5 +67,10 @@
 #define p2BIT 0x08
 #define p3BIT 0x20
 
+
+#define dbg0 l0LAT = 1;
+#define dbg1 l0LAT = 0;
+
+
 #endif	/* PINS_H */
 
