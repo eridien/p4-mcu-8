@@ -63,21 +63,24 @@ void i2cInterrupt(void) {
     WCOL = 0;                   // clear WCOL
     volatile int x = SSP1BUF;   // clear SSPOV
     inPacket = true;
+    motIdxInPacket = 99;
   }
   else if(SSP1STATbits.P) { 
     // received stop bit, on read tell loop that data is available
     inPacket = false;
-    if (WCOL || SSPOV) {
-      setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
-    }
-    else {
-      if(!SSP1STATbits.R_nW) {
-        // total length of recv is stored in first byte
-        i2cRecvBytes[motIdxInPacket][0] = i2cRecvBytesPtr-1;
-        mState[motIdxInPacket].i2cCmdBusy = true;
-      } else {
-        // master just read status,  clear error
-        mState[motIdxInPacket].stateByte &= 0x8f;
+    if(motIdxInPacket != 99) {
+      if (WCOL || SSPOV) {
+        setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
+      }
+      else {
+        if(!SSP1STATbits.R_nW) {
+          // total length of recv is stored in first byte
+          i2cRecvBytes[motIdxInPacket][0] = i2cRecvBytesPtr-1;
+          mState[motIdxInPacket].i2cCmdBusy = true;
+        } else {
+          // master just read status,  clear error
+          mState[motIdxInPacket].stateByte &= 0x8f;
+        }
       }
     }
   }

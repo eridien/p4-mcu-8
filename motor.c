@@ -144,7 +144,9 @@ void chkStopping() {
   // check ms->speed/acceleration
   if(!underJerkSpeed()) {
     // decellerate
-    ms->speed -= ms->accelleration / sv->speed);
+    uint16 accel = (ms->accelleration / sv->speed);
+    if(accel > ms->speed) accel = ms->speed;
+    ms->speed -= accel;
     setStep();
   }
   else {

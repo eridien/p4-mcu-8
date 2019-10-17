@@ -17,14 +17,18 @@ void chkMoving() {
   }
   
   ms->targetDir = (ms->targetPos >= ms->curPos);
-
+  
   // check ms->speed/acceleration
-  if((!underJerkSpeed() && withinDecellDist()) || (ms->dir != ms->targetDir))
+  uint16 accel = ms->accelleration/ms->speed;
+
+  if((!underJerkSpeed() && withinDecellDist()) || (ms->dir != ms->targetDir)) {
     // decellerate
-    ms->speed -= ms->accelleration/ms->speed;
+    if(accel > ms->speed) accel = ms->speed;
+    ms->speed -= accel;
+  }
   else if(ms->targetSpeed > ms->speed) {
     // accelerate
-    ms->speed += ms->accelleration/ms->speed;
+    ms->speed += accel;
   }
   if(ms->speed > ms->targetSpeed) ms->speed = ms->targetSpeed;
   if(ms->speed < sv->jerk)        ms->speed = sv->jerk;
