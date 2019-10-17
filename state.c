@@ -5,13 +5,20 @@
 #include "i2c.h"
 #include "motor.h"
 
-// do not use with interrupts off
+bool intsWereEnabled = false;
+
+void intsOff(void) {
+  intsWereEnabled = GIE;
+  GIE = 0;
+}
+
+void intsOn(void) {
+  GIE = intsWereEnabled;
+}
+
 void setCurState(uint8 newState) {
   // v bit (version is zero)
-  GIE = 0;
   ms->stateByte = newState;
-  setI2cCkSum();
-  GIE = 1;
 }
 
 void setStateBit(uint8 mask, uint8 set){
@@ -27,5 +34,4 @@ void setError(uint8 err) {
 // use from interrupt
 void setErrorInt(uint8 motIdx, uint8 err) {
   mState[motIdx].stateByte = err;
-  setI2cCkSumInt(motIdx);
 }

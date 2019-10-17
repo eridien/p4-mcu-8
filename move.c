@@ -48,7 +48,6 @@ void moveCommand(int16 pos) {
     // start moving
     setStateBit(BUSY_BIT, 1);
     ms->stopping = false;
-    ms->targetSpeed = sv->speed;
     chkMoving();
   }
   else {
@@ -56,6 +55,4 @@ void moveCommand(int16 pos) {
     stopStepping();
   }
 }
-
-
 

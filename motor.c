@@ -26,7 +26,7 @@ uint8 motorMask[NUM_MOTORS][4] = {
 };
 
 void setMotorPin(uint8 mot, uint8 pin, bool on) {
-#ifdef  dbg0
+#ifdef  debug
   if(mot == 3 && pin == 0) return;
 #endif
   if(on) *motorPort[mot][pin] |=  motorMask[mot][pin];
@@ -101,18 +101,17 @@ void motorInit() {
   p2TRIS = 1;
   p3TRIS = 1;
   
-#ifdef dbg0 
+#ifdef debug 
   dbg1
   l0TRIS = 0;
 #endif
 }
 
 void setMotorSettings(uint8 numWords) {
-  for(uint8 i = 0; i < sizeof(mSet[motorIdx]) / 
-                       sizeof(mSet[motorIdx].reg[0]); i++) {
-    if(i == numWords) break;
-    mSet[motorIdx].reg[i] = (i2cRecvBytes[motorIdx][2*i + 1] << 8) | 
-                             i2cRecvBytes[motorIdx][2*i + 2];
+  if(numWords > NUM_SETTING_WORDS) numWords = NUM_SETTING_WORDS;
+  for(uint8 i = 0; i < numWords; i++) {
+    mSet[motorIdx].reg[i] = (i2cRecvBytes[motorIdx][2*i + 2] << 8) | 
+                             i2cRecvBytes[motorIdx][2*i + 3];
   }
   ms->haveSettings = true;
 }
@@ -125,7 +124,9 @@ void stopStepping() {
 
 void resetMotor() {
   stopStepping();
+  intsOff();
   ms->curPos = 0;
+  intsOn();
   setStateBit(MOTOR_ON_BIT, 0);
   for(uint8 i=0; i<4; i++)
     setMotorPin(motorIdx, i, 0);
@@ -163,7 +164,9 @@ void chkStopping() {
 // from main loop
 void chkMotor() {
   if(ms->stepped) {
+    intsOff();
     if(ms->dir) ms->curPos++; else ms->curPos--;
+    intsOn();
     ms->stepped = false;
   }
   if(!haveError()) {
@@ -217,7 +220,16 @@ bool lenIs(uint8 expected, bool chkSettings) {
   }
   return true;
 }
-  
+
+// no real homing in this chip
+void homeCommand() {
+  intsOff();
+  ms->curPos = sv->homePos;
+  intsOn();
+  setStateBit(HOMED_BIT, 1);
+  motorOnCmd();
+}
+
 //  accel is 0..7: none, 4000, 8000, 20000, 40000, 80000, 200000, 400000 steps/sec/sec
 //  for 1/40 mm steps: none, 100, 200, 500, 1000, 2000, 5000, 10000 mm/sec/sec
 const uint16 accelTable[8] = // (steps/sec/sec accel) / 8
@@ -231,6 +243,7 @@ void processCommand() {
     if (lenIs(2, true)) {
       // move command
       ms->targetSpeed = sv->speed;
+      ms->accelleration = accelTable[sv->accelIdx];
       moveCommand(((int16) (firstByte & 0x7f) << 8) | rb[2]);
     }
   } else if ((firstByte & 0xc0) == 0x40) {
@@ -238,6 +251,7 @@ void processCommand() {
     if (lenIs(3, true)) {
       // changes settings for speed
       ms->targetSpeed = (uint16) (firstByte & 0x3f) << 8;
+      ms->accelleration = accelTable[sv->accelIdx];
       moveCommand((int16) (((uint16) rb[2] << 8) | rb[3]));
     }
   } else if ((firstByte & 0xf8) == 0x08) {
@@ -279,13 +293,14 @@ void processCommand() {
   } else if (firstByte == 0x01) {
     // setPos command
     if (lenIs(3, false)) {
+      intsOff();
       ms->curPos =  (int16) (((uint16) rb[2] << 8) | rb[3]);
+      intsOn();
     }
   } else if (firstByte == 0x1f) {
     // load settings command
     uint8 numWords = (numBytesRecvd - 1) / 2;
-    if ((numBytesRecvd & 0x01) == 1 &&
-            numWords > 0 && numWords <= NUM_SETTING_WORDS) {
+    if (numWords > 0 && numWords <= NUM_SETTING_WORDS) {
       setMotorSettings(numWords);
     } else {
       setError(CMD_DATA_ERROR);
@@ -303,10 +318,12 @@ void processCommand() {
     // one-byte commands
     if (lenIs(1, (bottomNib != 4 && bottomNib != 7))) {
       switch (bottomNib) {
+        case 0: homeCommand();               break; // fake home cmd
         case 2: softStopCommand(false);      break; // stop,no reset
         case 3: softStopCommand(true);       break; // stop with reset
         case 4: resetMotor();                break; // hard stop (immediate reset)
         case 5: motorOnCmd();                break; // reset off
+        case 6: homeCommand();               break; // fake home cmd
         default: setError(CMD_DATA_ERROR);
       }
     }
@@ -315,16 +332,16 @@ void processCommand() {
 }
 
 uint16 getLastStep(void) {
-  GIE = 0;
+  intsOff();
   uint16 temp = ms->lastStepTicks;
-  GIE = 1; 
+  intsOn();
   return temp;
 }
 
 void setNextStep(uint16 ticks) {
-  GIE = 0;
+  intsOff();
   ms->nextStepTicks = ticks;
-  GIE = 1; 
+  intsOn();
 }
 
 void clockInterrupt(void) {

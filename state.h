@@ -36,10 +36,11 @@
 #define MOTOR_ON_BIT        0x02
 #define HOMED_BIT           0x01
 
-void  setCurState(uint8 newState);
 void  setStateBit(uint8 mask, uint8 set);
 void  setError(uint8 err);
 void  setErrorInt(uint8 motorIdx, uint8 err);
+void  intsOff(void);
+void  intsOn(void);
 
 #endif	/* STATE_H */
 

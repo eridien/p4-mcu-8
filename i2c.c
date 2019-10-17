@@ -6,11 +6,9 @@
 #include "state.h"
 #include "motor.h"
 
-volatile uint8 subTime;
-
-volatile uint8 i2cRecvBytes[NUM_MOTORS][NUM_RECV_BYTES + 1];
+volatile uint8 i2cRecvBytes[NUM_MOTORS][NUM_RECV_BYTES];
 volatile uint8 i2cRecvBytesPtr;
-volatile uint8 i2cSendBytes[NUM_MOTORS][NUM_SEND_BYTES];
+volatile uint8 i2cSendBytes[NUM_SEND_BYTES];
 volatile uint8 i2cSendBytesPtr;
 volatile bool  inPacket;
 volatile uint8 motIdxInPacket;
@@ -34,23 +32,12 @@ void i2cInit() {
     SSP1IE = 1;                        // Enable ints
 }
 
-void setI2cCkSum() {
-  // interrupts must be off when called
-  uint8 *b = (uint8 *) &i2cSendBytes[motorIdx];
-  b[0] = ms->stateByte;
-  b[1] = ms->curPos >> 8;
-  b[2] = ms->curPos & 0x00ff;
-  b[3] = b[0] + b[1] + b[2];
-}
-
 // called from interrupt
-void setI2cCkSumInt(uint8 motIdx) {
+void setSendBytes(uint8 motIdx) {
   struct motorState *p = &mState[motIdx];
-  uint8 *b = (uint8 *) &i2cSendBytes[motIdx];
-  b[0] = p->stateByte;
-  b[1] = p->curPos >> 8;
-  b[2] = p->curPos & 0x00ff;
-  b[3] = b[0] + b[1] + b[2];
+  i2cSendBytes[0] = p->stateByte;
+  i2cSendBytes[1] = p->curPos >> 8;
+  i2cSendBytes[2] = p->curPos & 0x00ff;
 }
 
 void checkI2c() {
@@ -70,14 +57,12 @@ void checkI2c() {
 void i2cInterrupt(void) {
   // SSP1STATbits.S is set during entire packet
   if(SSP1STATbits.S && !inPacket) { 
-    dbg0
     // received start bit, prepare for packet
     i2cRecvBytesPtr = 1; // skip over length byte
     i2cSendBytesPtr = 0;
     WCOL = 0;                   // clear WCOL
     volatile int x = SSP1BUF;   // clear SSPOV
     inPacket = true;
-    dbg1
   }
   else if(SSP1STATbits.P) { 
     // received stop bit, on read tell loop that data is available
@@ -93,7 +78,6 @@ void i2cInterrupt(void) {
       } else {
         // master just read status,  clear error
         mState[motIdxInPacket].stateByte &= 0x8f;
-        setI2cCkSumInt(motIdxInPacket);
       }
     }
   }
@@ -103,7 +87,8 @@ void i2cInterrupt(void) {
       motIdxInPacket = (SSP1BUF & 0x06) >> 1;
       if(SSP1STATbits.R_nW) {
         // send packet (i2c read from slave), load buffer for first byte
-        SSP1BUF = i2cSendBytes[motIdxInPacket][i2cSendBytesPtr++]; // allways byte 0
+        setSendBytes(motIdxInPacket);
+        SSP1BUF = i2cSendBytes[i2cSendBytesPtr++]; // always byte 0
       }
     }
     else {
@@ -113,13 +98,13 @@ void i2cInterrupt(void) {
           setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
         } else {
           // received byte (i2c write to slave)
-          if(i2cRecvBytesPtr < NUM_RECV_BYTES + 1) 
+          if(i2cRecvBytesPtr < NUM_RECV_BYTES) 
             i2cRecvBytes[motIdxInPacket][i2cRecvBytesPtr++] = SSP1BUF;
         }
       }
       else {
         // sent byte (i2c read from slave), load buffer for next send
-        SSP1BUF = i2cSendBytes[motIdxInPacket][i2cSendBytesPtr++];
+        SSP1BUF = i2cSendBytes[i2cSendBytesPtr++];
       }
     }
   }
