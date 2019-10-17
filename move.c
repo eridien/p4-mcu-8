@@ -21,10 +21,10 @@ void chkMoving() {
   // check ms->speed/acceleration
   if((!underJerkSpeed() && withinDecellDist()) || (ms->dir != ms->targetDir))
     // decellerate
-    ms->speed -= ms->accelleration;
+    ms->speed -= ms->accelleration/ms->speed;
   else if(ms->targetSpeed > ms->speed) {
     // accelerate
-    ms->speed += ms->accelleration;
+    ms->speed += ms->accelleration/ms->speed;
   }
   if(ms->speed > ms->targetSpeed) ms->speed = ms->targetSpeed;
   if(ms->speed < sv->jerk)        ms->speed = sv->jerk;

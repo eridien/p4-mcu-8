@@ -27,7 +27,7 @@ uint8 motorMask[NUM_MOTORS][4] = {
 
 void setMotorPin(uint8 mot, uint8 pin, bool on) {
 #ifdef  debug
-  if(mot == 3 && pin == 0) return;
+  if(mot == 1 && pin == 0) return;
 #endif
   if(on) *motorPort[mot][pin] |=  motorMask[mot][pin];
   else   *motorPort[mot][pin] &= ~motorMask[mot][pin];
@@ -86,20 +86,13 @@ void motorInit() {
   }
   
   // motors turned off
-  z0TRIS = 1;
-  z1TRIS = 1;
-  z2TRIS = 1;
-  z3TRIS = 1;
-
-  l0TRIS = 1;
-  l1TRIS = 1;
-  l2TRIS = 1;
-  l3TRIS = 1;
-
-  p0TRIS = 1;
-  p1TRIS = 1;
-  p2TRIS = 1;
-  p3TRIS = 1;
+  z0LAT  = z1LAT  = z2LAT  = z3LAT  = 0;
+  l0LAT  = l1LAT  = l2LAT  = l3LAT  = 0;
+  p0LAT  = p1LAT  = p2LAT  = p3LAT  = 0;
+  
+  z0TRIS = z1TRIS = z2TRIS = z3TRIS = 0;
+  l0TRIS = l1TRIS = l2TRIS = l3TRIS = 0;
+  p0TRIS = p1TRIS = p2TRIS = p3TRIS = 0;
   
 #ifdef debug 
   dbg1
@@ -151,14 +144,13 @@ void chkStopping() {
   // check ms->speed/acceleration
   if(!underJerkSpeed()) {
     // decellerate
-    ms->speed -= ms->accelleration;
+    ms->speed -= ms->accelleration / sv->speed);
+    setStep();
   }
   else {
     stopStepping();
     if(ms->resetAfterSoftStop) resetMotor();
-    return;
   }
-  setStep();
 }
 
 // from main loop
@@ -206,6 +198,15 @@ void motorOnCmd() {
   setMotorPins(ms->phase);
 }
 
+// no real homing in this mcu
+void homeCommand() {
+  intsOff();
+  ms->curPos = sv->homePos;
+  intsOn();
+  setStateBit(HOMED_BIT, 1);
+  motorOnCmd();
+}
+
 uint8 numBytesRecvd;
 
 // called on every command except settings
@@ -219,15 +220,6 @@ bool lenIs(uint8 expected, bool chkSettings) {
     return false;
   }
   return true;
-}
-
-// no real homing in this chip
-void homeCommand() {
-  intsOff();
-  ms->curPos = sv->homePos;
-  intsOn();
-  setStateBit(HOMED_BIT, 1);
-  motorOnCmd();
 }
 
 //  accel is 0..7: none, 4000, 8000, 20000, 40000, 80000, 200000, 400000 steps/sec/sec
