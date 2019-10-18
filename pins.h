@@ -72,8 +72,10 @@
 #define p3BIT 0x20
 
 #ifdef debug
+#define dbgTRIS l0TRIS
 #define dbg0 l0LAT = 1;
 #define dbg1 l0LAT = 0;
+
 #else
 #define dbg0
 #define dbg1

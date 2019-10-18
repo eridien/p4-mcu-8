@@ -5,17 +5,6 @@
 #include "i2c.h"
 #include "motor.h"
 
-bool intsWereEnabled = false;
-
-void intsOff(void) {
-  intsWereEnabled = GIE;
-  GIE = 0;
-}
-
-void intsOn(void) {
-  GIE = intsWereEnabled;
-}
-
 void setCurState(uint8 newState) {
   // v bit (version is zero)
   ms->stateByte = newState;

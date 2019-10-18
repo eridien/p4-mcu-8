@@ -95,8 +95,8 @@ void motorInit() {
   p0TRIS = p1TRIS = p2TRIS = p3TRIS = 0;
   
 #ifdef debug 
-  dbg1
-  l0TRIS = 0;
+  dbg0
+  dbgTRIS = 0;
 #endif
 }
 
@@ -117,9 +117,12 @@ void stopStepping() {
 
 void resetMotor() {
   stopStepping();
-  intsOff();
-  ms->curPos = 0;
-  intsOn();
+  if(GIE) {
+    GIE=0;
+    ms->curPos = 0;
+    GIE=1;
+  } else 
+    ms->curPos = 0;
   setStateBit(MOTOR_ON_BIT, 0);
   for(uint8 i=0; i<4; i++)
     setMotorPin(motorIdx, i, 0);
@@ -158,9 +161,12 @@ void chkStopping() {
 // from main loop
 void chkMotor() {
   if(ms->stepped) {
-    intsOff();
-    if(ms->dir) ms->curPos++; else ms->curPos--;
-    intsOn();
+    if(GIE) {
+      GIE=0;
+      if(ms->dir) ms->curPos++; else ms->curPos--;
+      GIE=1;
+    } else 
+      if(ms->dir) ms->curPos++; else ms->curPos--;
     ms->stepped = false;
   }
   if(!haveError()) {
@@ -202,9 +208,12 @@ void motorOnCmd() {
 
 // no real homing in this mcu
 void homeCommand() {
-  intsOff();
-  ms->curPos = sv->homePos;
-  intsOn();
+  if(GIE) {
+    GIE=0;
+    ms->curPos = sv->homePos;
+    GIE=1;
+  } else 
+    ms->curPos = sv->homePos;
   setStateBit(HOMED_BIT, 1);
   motorOnCmd();
 }
@@ -287,9 +296,12 @@ void processCommand() {
   } else if (firstByte == 0x01) {
     // setPos command
     if (lenIs(3, false)) {
-      intsOff();
-      ms->curPos =  (int16) (((uint16) rb[2] << 8) | rb[3]);
-      intsOn();
+      if(GIE) {
+        GIE=0;
+        ms->curPos = (int16) (((uint16) rb[2] << 8) | rb[3]);
+        GIE=1;
+      } else 
+        ms->curPos = (int16) (((uint16) rb[2] << 8) | rb[3]);
     }
   } else if (firstByte == 0x1f) {
     // load settings command
@@ -326,16 +338,24 @@ void processCommand() {
 }
 
 uint16 getLastStep(void) {
-  intsOff();
-  uint16 temp = ms->lastStepTicks;
-  intsOn();
+  uint16 temp;
+  if(GIE) {
+    GIE=0;
+    temp = ms->lastStepTicks;
+    GIE=1;
+  } else 
+    temp = ms->lastStepTicks;
   return temp;
 }
 
 void setNextStep(uint16 ticks) {
-  intsOff();
-  ms->nextStepTicks = ticks;
-  intsOn();
+  uint16 temp;
+  if(GIE) {
+    GIE=0;
+    ms->nextStepTicks = ticks;
+    GIE=1;
+  } else 
+    ms->nextStepTicks = ticks;
 }
 
 void clockInterrupt(void) {
