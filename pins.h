@@ -3,7 +3,7 @@
 #define	PINS_H
 
 // debug pin is L0, RA4;  use dbg0 and dbg1
-//#define debug
+#define debug
 
 
 #define sclTRIS TRISB4
@@ -72,8 +72,8 @@
 #define p3BIT 0x20
 
 #ifdef debug
-//#define dbg0 l0LAT = 1;
-//#define dbg1 l0LAT = 0;
+#define dbg0 l0LAT = 1;
+#define dbg1 l0LAT = 0;
 #else
 #define dbg0
 #define dbg1

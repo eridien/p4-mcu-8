@@ -54,12 +54,14 @@ void checkI2c() {
   }
 }
 
+volatile struct motorState *p; // temp ptr
+
 void i2cInterrupt(void) {
   // SSP1STATbits.S is set during entire packet
   if(SSP1STATbits.S && !inPacket) { 
     // received start bit, prepare for packet
     i2cRecvBytesPtr = 1; // skip over length byte
-    i2cSendBytesPtr = 0;
+    i2cSendBytesPtr = 1; // not used for first byte
     WCOL = 0;                   // clear WCOL
     volatile int x = SSP1BUF;   // clear SSPOV
     inPacket = true;
@@ -69,6 +71,7 @@ void i2cInterrupt(void) {
     // received stop bit, on read tell loop that data is available
     inPacket = false;
     if(motIdxInPacket != 99) {
+      // packet was for us
       if (WCOL || SSPOV) {
         setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
       }
@@ -90,8 +93,12 @@ void i2cInterrupt(void) {
       motIdxInPacket = (SSP1BUF & 0x06) >> 1;
       if(SSP1STATbits.R_nW) {
         // send packet (i2c read from slave), load buffer for first byte
-        setSendBytes(motIdxInPacket);
-        SSP1BUF = i2cSendBytes[i2cSendBytesPtr++]; // always byte 0
+        dbg1
+        p = &mState[motIdxInPacket];
+        i2cSendBytes[0] = p->stateByte;
+        i2cSendBytes[1] = p->curPos >> 8;
+        i2cSendBytes[2] = p->curPos & 0x00ff;
+        SSP1BUF = i2cSendBytes[0];
       }
     }
     else {
@@ -113,4 +120,5 @@ void i2cInterrupt(void) {
   }
   CKP = 1; // end stretch
   volatile int z = SSP1BUF;  // clear BF 
+  dbg0
 }

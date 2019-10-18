@@ -10,6 +10,7 @@
             <file>file:/C:/p4/p4-mcu-8/move.c</file>
             <file>file:/C:/p4/p4-mcu-8/i2c.c</file>
             <file>file:/C:/p4/p4-mcu-8/state.h</file>
+            <file>file:/C:/p4/p4-mcu-8/pins.h</file>
             <file>file:/C:/p4/p4-mcu-8/types.h</file>
         </group>
     </open-files>
