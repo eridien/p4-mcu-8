@@ -73,15 +73,16 @@ void i2cInterrupt(void) {
         // received data byte (i2c write to slave)
         
         if(mState[motIdxInPacket].i2cCmdBusy) {
-          // oops, last recv not handled yet by main loop
+          //last recv not handled yet by main loop
           setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
         } 
         else {
           bytesRecvd++;
           if(i2cRecvBytesPtr < NUM_RECV_BYTES) 
             i2cRecvBytes[motIdxInPacket][i2cRecvBytesPtr++] = SSP1BUF;
-          if(i2cRecvBytes[motIdxInPacket][0] == bytesRecvd) {
-            i2cRecvBytes[motIdxInPacket][0]   = i2cRecvBytesPtr-1;
+          if(i2cRecvBytes[motIdxInPacket][0] == bytesRecvd-1) {
+            // recvd all data
+            i2cRecvBytes[motIdxInPacket][0] = i2cRecvBytesPtr-1;
             mState[motIdxInPacket].i2cCmdBusy = true;
           }
         }
