@@ -8,7 +8,7 @@
 #include "clock.h"
 #include "move.h"
 
-// globals for use in main chk loop
+// globals for use in main event loop
 uint8  motorIdx;
 struct motorState      *ms;
 struct motorSettings   *sv;

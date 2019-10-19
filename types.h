@@ -2,14 +2,6 @@
 #ifndef TYPES_H
 #define	TYPES_H
 
-// todo
-//   set homing dir for rotation motor
-//   new busy and err bits
-//   stop all motors on error
-//   keep pos accurate in recvbytes
-//   chg speed to steps/sec (8x for bipolar)  
-//   chg max ustep to 1/8
-
 #define BM  // bipolar motor
 #define B1  // one bipolar motor
 //#define B3  // three bipolar motors

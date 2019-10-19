@@ -7,11 +7,12 @@
 #include "motor.h"
 
 volatile uint8 i2cRecvBytes[NUM_MOTORS][NUM_RECV_BYTES];
-volatile uint8 i2cRecvBytesPtr;
+volatile uint8 bytesSaved;
 volatile uint8 i2cSendBytes[NUM_SEND_BYTES-1];
 volatile uint8 i2cSendBytesPtr;
 volatile uint8 motIdxInPacket;
 volatile uint8 bytesRecvd;
+volatile uint8 bytesSaved;
 
 void i2cInit() {    
     sclTRIS = 1;
@@ -65,8 +66,8 @@ void i2cInterrupt(void) {
       }
       else
         // recv packet (i2c write to slave), 
-        i2cRecvBytesPtr = 0;
         bytesRecvd = 0;
+        bytesSaved = 0;
     }
     else {
       if(!SSP1STATbits.R_nW) {
@@ -78,11 +79,11 @@ void i2cInterrupt(void) {
         } 
         else {
           bytesRecvd++;
-          if(i2cRecvBytesPtr < NUM_RECV_BYTES) 
-            i2cRecvBytes[motIdxInPacket][i2cRecvBytesPtr++] = SSP1BUF;
+          if(bytesSaved < NUM_RECV_BYTES) 
+            i2cRecvBytes[motIdxInPacket][bytesSaved++] = SSP1BUF;
           if(i2cRecvBytes[motIdxInPacket][0] == bytesRecvd-1) {
-            // recvd all data
-            i2cRecvBytes[motIdxInPacket][0] = i2cRecvBytesPtr-1;
+            // recvd all data -- correct length if buf overflowed
+            i2cRecvBytes[motIdxInPacket][0] = bytesSaved-1;
             mState[motIdxInPacket].i2cCmdBusy = true;
           }
         }
