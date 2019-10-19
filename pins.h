@@ -3,7 +3,7 @@
 #define	PINS_H
 
 // debug pin is L0, RA4;  use dbg0 and dbg1
-#define debug
+//#define debug
 
 
 #define sclTRIS TRISB4
@@ -41,20 +41,20 @@
 #define p2LAT LATB3
 #define p3LAT LATB5
 
-#define z0PORT PORTA
-#define z1PORT PORTA
-#define z2PORT PORTA
-#define z3PORT PORTA
+#define z0PORT LATA
+#define z1PORT LATA
+#define z2PORT LATA
+#define z3PORT LATA
 
-#define l0PORT PORTA
-#define l1PORT PORTA
-#define l2PORT PORTA
-#define l3PORT PORTB
+#define l0PORT LATA
+#define l1PORT LATA
+#define l2PORT LATA
+#define l3PORT LATB
 
-#define p0PORT PORTB
-#define p1PORT PORTB
-#define p2PORT PORTB
-#define p3PORT PORTB
+#define p0PORT LATB
+#define p1PORT LATB
+#define p2PORT LATB
+#define p3PORT LATB
 
 #define z0BIT 0x01
 #define z1BIT 0x02

@@ -48,7 +48,7 @@ struct motorState {
 struct motorSettings {
   uint16 accelIdx;
   uint16 speed;
-  uint16 jerk;
+  uint16 jerkSpeed;
    int16 homePos;        // value to set cur pos after homing
 //   int16 minPos;
 //   int16 maxPos;

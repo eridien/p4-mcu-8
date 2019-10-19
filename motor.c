@@ -8,6 +8,11 @@
 #include "clock.h"
 #include "move.h"
 
+
+uint16 speedDbg[5][4];
+uint8  speedDbgPtr = 0;
+
+
 // globals for use in main event loop
 uint8  motorIdx;
 struct motorState      *ms;
@@ -38,7 +43,7 @@ void setMotorPin(uint8 mot, uint8 pin, bool on) {
 uint16 settingsInit[NUM_SETTING_WORDS] = {
       1,  // accelIdx accelleration rate: 1 mm/sec/sec
    6400,  // max speed: 80 mm/sec
-   1600,  // jerk  20 mm/sec
+   1600,  // jerk speed  20 mm/sec
       0,  // homePos: home value used by command
 };
 // estimated decell distance by ms->speed
@@ -77,14 +82,13 @@ void motorInit() {
     p->dir             = 1;  // 1 => forward
     p->phase           = 0;
     p->targetPos       = 0;  // 1/80 mm
-    p->speed           = 0;  // 1/80 mm/sec
-    p->targetSpeed     = 0;  // 1/80 mm/sec
+    p->speed           = 1;  // 1/80 mm/sec
+    p->targetSpeed     = 1;  // 1/80 mm/sec
     
     for(uint8 i = 0; i < NUM_SETTING_WORDS; i++) {
        mSet[motIdx].reg[i] = settingsInit[i];
     }
   }
-  
   // motors turned off
   z0LAT  = z1LAT  = z2LAT  = z3LAT  = 0;
   l0LAT  = l1LAT  = l2LAT  = l3LAT  = 0;
@@ -127,16 +131,12 @@ void resetMotor() {
   for(uint8 i=0; i<4; i++)
     setMotorPin(motorIdx, i, 0);
 }
-
-bool underJerkSpeed() {
-  return (ms->speed <= sv->jerk);
-}
-
 void setStep() {
   if(ms->speed == 0) ms->speed = 1;
   uint16 stepTicks = CLK_RATE / ms->speed;
   if(stepTicks == 0) stepTicks = 1;
-  setNextStep(getLastStep() + stepTicks);
+  uint16 nextStep = getLastStep() + stepTicks;
+  setNextStep(nextStep);
   ms->stepped = false;
   ms->stepPending = true;
 }
@@ -145,7 +145,7 @@ void chkStopping() {
   // in the process of stepping
   if(ms->stepPending || ms->stepped) return;
   // check ms->speed/acceleration
-  if(!underJerkSpeed()) {
+  if((ms->speed > sv->jerkSpeed)) {
     // decellerate
     uint16 accel = (ms->accelleration / sv->speed);
     if(accel > ms->speed) accel = ms->speed;
@@ -180,30 +180,30 @@ void softStopCommand(bool resetAfter) {
   ms->resetAfterSoftStop = resetAfter;
 }
 
-void setMotorPins(uint8 phase) {
+void setMotorPins(uint8 motr, uint8 phase) {
   switch (phase) {
     case 0:
-      setMotorPin(motorIdx, 0, 1); setMotorPin(motorIdx, 1, 1);
-      setMotorPin(motorIdx, 2, 0); setMotorPin(motorIdx, 3, 0);
+      setMotorPin(motr, 0, 1); setMotorPin(motr, 1, 1);
+      setMotorPin(motr, 2, 0); setMotorPin(motr, 3, 0);
       break;
     case 1:
-      setMotorPin(motorIdx, 0, 0); setMotorPin(motorIdx, 1, 1);
-      setMotorPin(motorIdx, 2, 1); setMotorPin(motorIdx, 3, 0);
+      setMotorPin(motr, 0, 0); setMotorPin(motr, 1, 1);
+      setMotorPin(motr, 2, 1); setMotorPin(motr, 3, 0);
       break;
     case 2:
-      setMotorPin(motorIdx, 0, 0); setMotorPin(motorIdx, 1, 0);
-      setMotorPin(motorIdx, 2, 1); setMotorPin(motorIdx, 3, 1);
+      setMotorPin(motr, 0, 0); setMotorPin(motr, 1, 0);
+      setMotorPin(motr, 2, 1); setMotorPin(motr, 3, 1);
       break;
     case 3:
-      setMotorPin(motorIdx, 0, 1); setMotorPin(motorIdx, 1, 0);
-      setMotorPin(motorIdx, 2, 0); setMotorPin(motorIdx, 3, 1);
+      setMotorPin(motr, 0, 1); setMotorPin(motr, 1, 0);
+      setMotorPin(motr, 2, 0); setMotorPin(motr, 3, 1);
       break;    
   }
 }
 
 void motorOnCmd() {
   setStateBit(MOTOR_ON_BIT, 1);
-  setMotorPins(ms->phase);
+  setMotorPins(motorIdx, ms->phase);
 }
 
 // no real homing in this mcu
@@ -274,7 +274,7 @@ void processCommand() {
       if(firstByte & 0x10) ms->targetPos = ms->curPos + dist;
       else                 ms->targetPos = ms->curPos - dist;
       ms->accelleration = 0;
-      ms->targetSpeed   = sv->jerk;
+      ms->targetSpeed   = sv->jerkSpeed;
       moveCommand(true);
     }
   } else if (firstByte == 0x02) {
@@ -282,7 +282,7 @@ void processCommand() {
     if (lenIs(3, true)) {
       motorOnCmd(); 
       ms->accelleration = 0;
-      ms->targetSpeed  = sv->jerk;
+      ms->targetSpeed  = sv->jerkSpeed;
       moveCommand(ms->curPos + (int16) (((uint16) rb[2] << 8) | rb[3]));
     }
   } else if (firstByte == 0x03) {
@@ -290,7 +290,7 @@ void processCommand() {
     if (lenIs(3, true)) {
       motorOnCmd();
       ms->accelleration = 0;
-      ms->targetSpeed  = sv->jerk;
+      ms->targetSpeed  = sv->jerkSpeed;
       moveCommand((int16) (ms->curPos - (int16) (((uint16) rb[2] << 8) | rb[3])));
     }
   } else if (firstByte == 0x01) {
@@ -349,7 +349,6 @@ uint16 getLastStep(void) {
 }
 
 void setNextStep(uint16 ticks) {
-  uint16 temp;
   if(GIE) {
     GIE=0;
     ms->nextStepTicks = ticks;
@@ -361,21 +360,20 @@ void setNextStep(uint16 ticks) {
 void clockInterrupt(void) {
   timeTicks++;
   for(int motIdx = 0; motIdx < NUM_MOTORS; motIdx++) {
-    struct motorState *p = &mState[motIdx];
-    if(p->stepPending && p->nextStepTicks == timeTicks) {
-      if(p->stepped) {
+    struct motorState *s = &mState[motIdx];
+    if(s->stepPending && s->nextStepTicks == timeTicks) {
+      if(s->stepped) {
         // last motor step not handled yet
         setErrorInt(motIdx, STEP_NOT_DONE_ERROR);
         return;
       }
-      p->phase += (p->dir ? 1 : -1);
-      if(p->phase ==   4) p->phase = 0;
-      if(p->phase == 255) p->phase = 3;
-      setMotorPins(p->phase);
-      
-      p->stepPending = false;
-      p->lastStepTicks = timeTicks;
-      p->stepped = true;
+      s->phase += (s->dir ? 1 : -1);
+      if(s->phase ==   4) s->phase = 0;
+      if(s->phase == 255) s->phase = 3;
+      setMotorPins(motIdx, s->phase);
+      s->stepPending = false;
+      s->lastStepTicks = timeTicks;
+      s->stepped = true;
     }
   }
 }

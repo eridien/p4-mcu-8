@@ -46,7 +46,6 @@ void checkI2c() {
 volatile struct motorState *p; // temp ptr
 
 void i2cInterrupt(void) {
-  dbg1
   if (WCOL || SSPOV) {
     setErrorInt(motIdxInPacket, OVERFLOW_ERROR);
   }
@@ -96,5 +95,4 @@ void i2cInterrupt(void) {
   }
   CKP = 1; // end stretch
   volatile int z = SSP1BUF;  // clear BF 
-  dbg0
 }
